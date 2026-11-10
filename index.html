@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inkubator-Register</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<style>
+/* Layout: one working column. Header, then the incubators drawn as cabinets with
+   numbered shelves; each culture is a tile on its shelf. Table and log are secondary views. */
+:root {
+  --bg: #eaeef1;
+  --surface: #ffffff;
+  --surface-2: #f4f6f8;
+  --line: #d3dae0;
+  --steel: #b9c4cc;
+  --fg: #15222b;
+  --muted: #566571;
+  --accent: #0b6477;
+  --accent-fg: #ffffff;
+  --accent-soft: #d9ecf0;
+  --ok: #1c7448;
+  --ok-soft: #dcf1e5;
+  --warn: #8f5a00;
+  --warn-soft: #fbecc9;
+  --crit: #b0271f;
+  --crit-soft: #fbe0dd;
+  --display-bg: #0e1c24;
+  --display-fg: #86e6c8;
+  --backdrop: rgba(14, 28, 36, .45);
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-display: "IBM Plex Sans Condensed", "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e161b; --surface: #162128; --surface-2: #1c2931; --line: #2b3a44; --steel: #3d4f5b;
+    --fg: #e3eaee; --muted: #94a4af; --accent: #55bdd0; --accent-fg: #05222a; --accent-soft: #13343f;
+    --ok: #62cf98; --ok-soft: #133424; --warn: #e8b755; --warn-soft: #3a2c0d; --crit: #f28a82; --crit-soft: #431b18;
+    --display-bg: #091116; --display-fg: #86e6c8; --backdrop: rgba(0, 0, 0, .6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e161b; --surface: #162128; --surface-2: #1c2931; --line: #2b3a44; --steel: #3d4f5b;
+  --fg: #e3eaee; --muted: #94a4af; --accent: #55bdd0; --accent-fg: #05222a; --accent-soft: #13343f;
+  --ok: #62cf98; --ok-soft: #133424; --warn: #e8b755; --warn-soft: #3a2c0d; --crit: #f28a82; --crit-soft: #431b18;
+  --display-bg: #091116; --display-fg: #86e6c8; --backdrop: rgba(0, 0, 0, .6);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 15px/1.45 var(--font-body);
+}
+.page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+h1, h2, h3, p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+
+/* Header */
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand svg { flex: none; }
+.brand h1 { font: 600 26px/1.1 var(--font-display); letter-spacing: .01em; }
+.brand p { color: var(--muted); font-size: 13px; }
+.top-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.who { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 6px 12px; cursor: pointer; font-weight: 500; font-size: 13px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+
+.demo-note {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px;
+  padding: 8px 12px; border: 1px dashed var(--steel); border-radius: var(--radius);
+  font-size: 13px; color: var(--muted);
+}
+.link { border: 0; background: none; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
+/* Controls */
+select, input[type="text"], input[type="search"], input[type="number"], input[type="date"], textarea {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 7px 10px; min-width: 0; width: 100%;
+}
+.who select { width: auto; }
+.btn {
+  border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius);
+  padding: 7px 14px; cursor: pointer; font-weight: 500; white-space: nowrap;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.btn.danger { color: var(--crit); }
+.btn.danger:hover { border-color: var(--crit); }
+
+/* Tabs + summary */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tabs button {
+  border: 0; background: none; padding: 9px 14px; cursor: pointer; font-weight: 500; color: var(--muted);
+  border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap;
+}
+.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+
+.summary { display: flex; flex-wrap: wrap; gap: 8px 28px; font-size: 14px; }
+.summary .stat { display: flex; align-items: baseline; gap: 6px; }
+.summary .stat b { font: 500 20px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.summary .stat.crit b { color: var(--crit); }
+.summary .stat.warn b { color: var(--warn); }
+
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.toolbar .search { flex: 1 1 220px; min-width: 0; }
+.toolbar .status { flex: 0 1 170px; }
+.check { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; white-space: nowrap; }
+.check input { width: 16px; height: 16px; accent-color: var(--accent); }
+.toolbar .spacer { flex: 1 1 0; }
+
+/* Cabinets */
+#body { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.cabinet { border: 2px solid var(--steel); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.cab-head {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px;
+  padding: 10px 14px; background: var(--surface-2); border-bottom: 2px solid var(--steel);
+}
+.cab-head h2 { font: 600 19px/1.2 var(--font-display); }
+.cab-head .room { color: var(--muted); font-size: 13px; margin-left: 8px; font-family: var(--font-body); font-weight: 400; }
+.display {
+  display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 5px 12px; border-radius: 4px;
+  background: var(--display-bg); color: var(--display-fg);
+  font: 500 13px/1.4 var(--font-mono); font-variant-numeric: tabular-nums;
+}
+.shelves { list-style: none; margin: 0; padding: 0; }
+.shelf { display: flex; gap: 12px; padding: 12px 14px; border-bottom: 3px double var(--steel); }
+.shelf:last-child { border-bottom: 0; }
+.shelf-label {
+  flex: none; width: 64px; padding-top: 6px;
+  font: 500 11px/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+}
+.shelf-items { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+@media (max-width: 560px) {
+  .shelf { flex-direction: column; gap: 6px; }
+  .shelf-label { width: auto; padding-top: 0; }
+}
+
+.tile {
+  display: flex; flex-direction: column; gap: 4px; text-align: left; cursor: pointer; min-width: 0;
+  padding: 8px 10px; border: 1px solid var(--line); border-left: 4px solid var(--steel); border-radius: 4px;
+  background: var(--surface-2);
+}
+.tile:hover { border-color: var(--accent); border-left-color: var(--accent); }
+.tile.s-crit { border-left-color: var(--crit); }
+.tile.s-warn { border-left-color: var(--warn); }
+.tile.s-ok { border-left-color: var(--ok); }
+.tile.dim { opacity: .3; }
+.tile-top { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.tile .cl { font-weight: 600; overflow-wrap: anywhere; }
+.tile-meta { font-size: 12px; color: var(--muted); }
+.tile-foot { display: flex; align-items: center; gap: 6px; font-size: 12.5px; flex-wrap: wrap; }
+.add-slot {
+  border: 1px dashed var(--steel); background: transparent; border-radius: 4px; cursor: pointer;
+  color: var(--muted); font-size: 13px; min-height: 44px; padding: 8px 10px;
+}
+.add-slot:hover { border-color: var(--accent); color: var(--accent); }
+
+.avatar {
+  flex: none; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  font: 600 10px/1 var(--font-body); color: #fff; letter-spacing: .02em;
+}
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.pill.crit { background: var(--crit-soft); color: var(--crit); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.none, .pill.off { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+.pill.bsl { background: var(--accent-soft); color: var(--accent); }
+
+/* Table */
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: middle; }
+th { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 500; background: var(--surface-2); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.owner-cell { display: inline-flex; align-items: center; gap: 6px; }
+.empty { padding: 28px 16px; text-align: center; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+
+/* Log */
+.log { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.log li { display: flex; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--line); align-items: flex-start; }
+.log li:last-child { border-bottom: 0; }
+.log .when { flex: none; width: 128px; font: 12px/1.7 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.log .what { min-width: 0; overflow-wrap: anywhere; }
+.log .note { color: var(--muted); font-size: 13.5px; }
+@media (max-width: 560px) {
+  .log li { flex-wrap: wrap; gap: 2px 8px; }
+  .log .when { width: 100%; }
+}
+
+/* Dialog */
+dialog {
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg);
+  padding: 0; width: min(680px, calc(100vw - 24px)); max-height: calc(100vh - 32px);
+}
+dialog::backdrop { background: var(--backdrop); }
+.dlg { display: flex; flex-direction: column; gap: 16px; padding: 18px 20px 20px; }
+.dlg-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.dlg-head h2 { font: 600 22px/1.2 var(--font-display); text-wrap: balance; }
+.dlg-head .id { font-size: 13px; color: var(--muted); }
+.x { border: 0; background: none; cursor: pointer; font-size: 22px; line-height: 1; padding: 2px 6px; color: var(--muted); border-radius: 4px; }
+.x:hover { color: var(--fg); }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px 20px; margin: 0; }
+.facts div { min-width: 0; }
+.facts dt { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.facts dd { margin: 0; overflow-wrap: anywhere; }
+.facts .wide { grid-column: 1 / -1; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sect { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 500; }
+.dlg .log { border-color: var(--line); }
+.dlg .log .when { width: 118px; }
+
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+.form-grid .wide { grid-column: 1 / -1; }
+@media (max-width: 520px) { .form-grid { grid-template-columns: minmax(0, 1fr); } }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field > span { font-size: 12.5px; color: var(--muted); }
+.field textarea { min-height: 64px; resize: vertical; }
+.pair { display: flex; gap: 8px; }
+.pair > * { flex: 1; min-width: 0; }
+.dlg-foot { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 999px; font-size: 14px;
+  max-width: calc(100vw - 32px); z-index: 50;
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="brand">
+      <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true">
+        <rect x="3" y="3" width="32" height="32" rx="5" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+        <line x1="8" y1="14" x2="30" y2="14" stroke="var(--steel)" stroke-width="2"/>
+        <line x1="8" y1="24" x2="30" y2="24" stroke="var(--steel)" stroke-width="2"/>
+        <rect x="10" y="8" width="8" height="5" rx="1" fill="var(--accent)"/>
+        <rect x="20" y="18" width="8" height="5" rx="1" fill="var(--accent)"/>
+        <rect x="10" y="28" width="6" height="4" rx="1" fill="var(--accent)"/>
+      </svg>
+      <div>
+        <h1 id="app-title"></h1>
+        <p id="app-sub"></p>
+      </div>
+    </div>
+    <div class="top-controls">
+      <label class="who"><span id="who-label"></span>
+        <select id="user-select"></select>
+      </label>
+      <div class="seg" role="group" id="lang-seg">
+        <button type="button" data-lang="de">DE</button>
+        <button type="button" data-lang="en">EN</button>
+      </div>
+    </div>
+  </header>
+
+  <p class="demo-note"><span id="demo-text"></span> <button type="button" class="link" data-act="reset" id="reset-btn"></button></p>
+
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <section class="summary" id="summary" aria-live="polite"></section>
+
+  <div class="toolbar">
+    <input type="search" class="search" id="q" autocomplete="off">
+    <select class="status" id="status-filter"></select>
+    <label class="check"><input type="checkbox" id="mine"><span id="mine-label"></span></label>
+    <span class="spacer"></span>
+    <button type="button" class="btn primary" data-act="new" id="new-btn"></button>
+  </div>
+
+  <main id="body"></main>
+</div>
+
+<dialog id="dlg"></dialog>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function () {
+'use strict';
+
+/* ---------- Static lists ---------- */
+var LS_DATA = 'inkubator-register-demo-data-v1';
+var LS_PREFS = 'inkubator-register-demo-prefs-v1';
+
+var USERS = [
+  { id: 'u1', name: 'Anna Becker', hue: 200 },
+  { id: 'u2', name: 'Jonas Weber', hue: 24 },
+  { id: 'u3', name: 'Mira Okafor', hue: 285 },
+  { id: 'u4', name: 'Lukas Hoffmann', hue: 145 }
+];
+var INCUBATORS = [
+  { id: 'i1', n: 1, room: '2.14', temp: 37, co2: 5, o2: null, shelves: 4 },
+  { id: 'i2', n: 2, room: '2.14', temp: 37, co2: 5, o2: 3, shelves: 3 }
+];
+var VESSELS = ['T25', 'T75', 'T175', '6-Well', '12-Well', '24-Well', '96-Well', 'Petri 10 cm'];
+var CELL_LINES = ['HeLa', 'HEK293', 'HEK293T', 'A549', 'MCF-7', 'Jurkat', 'U2OS', 'CHO-K1', 'HepG2', 'SH-SY5Y', 'NIH/3T3', 'Caco-2', 'THP-1', 'hiPSC', 'Vero'];
+var MEDIA = ['DMEM', 'DMEM/F-12', 'RPMI 1640', 'EMEM', "Ham's F-12", 'F-12K', 'IMDM', 'mTeSR Plus', 'Opti-MEM'];
+var NEXT_TYPES = ['medium', 'split', 'check', 'none'];
+var REASONS = ['used', 'frozen', 'discarded', 'contaminated'];
+
+/* ---------- Translations ---------- */
+var I18N = {
+  de: {
+    title: 'Inkubator-Register', sub: 'Zellkultur-Labor · Demo',
+    who: 'Angemeldet als', lang: 'Sprache',
+    demo: 'Demo mit Beispieldaten und erfundenen Personen. Änderungen bleiben nur in diesem Browser gespeichert.',
+    reset: 'Beispieldaten zurücksetzen',
+    tab_inc: 'Inkubatoren', tab_list: 'Liste', tab_log: 'Verlauf',
+    sum_active: 'Kulturen aktiv', sum_today: 'heute fällig', sum_over: 'überfällig', sum_mine: 'eigene',
+    search: 'Suchen: Zelllinie, ID, Projekt, Person …', mine: 'Nur meine',
+    f_active: 'Aktive', f_removed: 'Entnommene', f_all: 'Alle',
+    new: '+ Kultur eintragen',
+    incubator: 'Inkubator', room: 'Raum', shelf: 'Ebene', rh: 'rF',
+    add_here: '+ hier eintragen', shelf_empty: 'frei',
+    overdue: 'überfällig seit {0} T', due_today: 'heute fällig', due_tomorrow: 'morgen', due_in: 'in {0} Tagen',
+    no_action: 'keine Aktion geplant', st_removed: 'entnommen', st_active: 'aktiv',
+    next_medium: 'Mediumwechsel', next_split: 'Passage', next_check: 'Kontrolle', next_none: 'Keine',
+    c_id: 'ID', c_line: 'Zelllinie', c_passage: 'Passage', c_vessel: 'Gefäß', c_count: 'Anzahl', c_medium: 'Medium',
+    c_supp: 'Zusätze', c_seeded: 'Ausgesät am', c_place: 'Standort', c_owner: 'Verantwortlich', c_project: 'Projekt',
+    c_next: 'Nächste Aktion', c_due: 'Fällig am', c_days: 'Tage in Kultur', c_conf: 'Konfluenz', c_myco: 'Mykoplasmen-Test',
+    c_myco_date: 'Mykoplasmen-Test am', c_myco_res: 'Ergebnis', c_bsl: 'Sicherheitsstufe', c_notes: 'Notizen', c_status: 'Status',
+    myco_neg: 'negativ', myco_pos: 'positiv', myco_open: 'nicht getestet',
+    none_found: 'Keine Einträge gefunden.',
+    form_new: 'Kultur eintragen', form_edit: 'Eintrag bearbeiten', save: 'Speichern', cancel: 'Abbrechen', close: 'Schließen',
+    ph_supp: 'z. B. 10 % FBS, 1 % Pen/Strep',
+    a_medium: 'Mediumwechsel', a_passage: 'Passagiert', a_check: 'Kontrolle', a_note: 'Notiz', a_edit: 'Bearbeiten', a_remove: 'Entnehmen',
+    act_medium: 'Mediumwechsel protokollieren', act_passage: 'Passage protokollieren', act_check: 'Kontrolle protokollieren', act_note: 'Notiz hinzufügen',
+    new_passage: 'Neue Passage', ratio: 'Split-Verhältnis', ph_ratio: 'z. B. 1:5', conf_pct: 'Konfluenz (%)', note: 'Notiz',
+    then: 'Danach geplant', log_it: 'Protokollieren',
+    remove_title: 'Kultur entnehmen', reason: 'Grund', remove_do: 'Entnehmen',
+    r_used: 'für Experiment verbraucht', r_frozen: 'kryokonserviert', r_discarded: 'verworfen', r_contaminated: 'kontaminiert, verworfen',
+    history: 'Verlauf',
+    e_seeded: 'Ausgesät', e_medium: 'Mediumwechsel', e_passage: 'Passagiert', e_check: 'Kontrolle', e_note: 'Notiz',
+    e_edited: 'Eintrag bearbeitet', e_moved: 'Umgestellt', e_removed: 'Entnommen',
+    removed_on: 'Entnommen am',
+    reset_title: 'Beispieldaten zurücksetzen?', reset_text: 'Alle Änderungen in diesem Browser gehen verloren. Das Register startet wieder mit den Beispielkulturen.', reset_do: 'Zurücksetzen',
+    t_saved: 'Gespeichert', t_logged: 'Protokolliert', t_removed: 'Kultur entnommen', t_reset: 'Beispieldaten wiederhergestellt',
+    days: '{0} T'
+  },
+  en: {
+    title: 'Incubator Register', sub: 'Cell culture lab · Demo',
+    who: 'Signed in as', lang: 'Language',
+    demo: 'Demo with sample data and invented people. Changes are saved in this browser only.',
+    reset: 'Reset sample data',
+    tab_inc: 'Incubators', tab_list: 'List', tab_log: 'Activity',
+    sum_active: 'active cultures', sum_today: 'due today', sum_over: 'overdue', sum_mine: 'mine',
+    search: 'Search: cell line, ID, project, person …', mine: 'Mine only',
+    f_active: 'Active', f_removed: 'Removed', f_all: 'All',
+    new: '+ Add culture',
+    incubator: 'Incubator', room: 'Room', shelf: 'Shelf', rh: 'rH',
+    add_here: '+ add here', shelf_empty: 'empty',
+    overdue: 'overdue by {0} d', due_today: 'due today', due_tomorrow: 'tomorrow', due_in: 'in {0} days',
+    no_action: 'nothing planned', st_removed: 'removed', st_active: 'active',
+    next_medium: 'Medium change', next_split: 'Passage', next_check: 'Check', next_none: 'None',
+    c_id: 'ID', c_line: 'Cell line', c_passage: 'Passage', c_vessel: 'Vessel', c_count: 'Count', c_medium: 'Medium',
+    c_supp: 'Supplements', c_seeded: 'Seeded on', c_place: 'Location', c_owner: 'Responsible', c_project: 'Project',
+    c_next: 'Next action', c_due: 'Due on', c_days: 'Days in culture', c_conf: 'Confluence', c_myco: 'Mycoplasma test',
+    c_myco_date: 'Mycoplasma test on', c_myco_res: 'Result', c_bsl: 'Biosafety level', c_notes: 'Notes', c_status: 'Status',
+    myco_neg: 'negative', myco_pos: 'positive', myco_open: 'not tested',
+    none_found: 'No entries found.',
+    form_new: 'Add culture', form_edit: 'Edit entry', save: 'Save', cancel: 'Cancel', close: 'Close',
+    ph_supp: 'e.g. 10 % FBS, 1 % Pen/Strep',
+    a_medium: 'Medium change', a_passage: 'Passaged', a_check: 'Check', a_note: 'Note', a_edit: 'Edit', a_remove: 'Remove',
+    act_medium: 'Log medium change', act_passage: 'Log passage', act_check: 'Log check', act_note: 'Add note',
+    new_passage: 'New passage', ratio: 'Split ratio', ph_ratio: 'e.g. 1:5', conf_pct: 'Confluence (%)', note: 'Note',
+    then: 'Planned next', log_it: 'Log',
+    remove_title: 'Remove culture', reason: 'Reason', remove_do: 'Remove',
+    r_used: 'used for experiment', r_frozen: 'cryopreserved', r_discarded: 'discarded', r_contaminated: 'contaminated, discarded',
+    history: 'History',
+    e_seeded: 'Seeded', e_medium: 'Medium change', e_passage: 'Passaged', e_check: 'Check', e_note: 'Note',
+    e_edited: 'Entry edited', e_moved: 'Moved', e_removed: 'Removed',
+    removed_on: 'Removed on',
+    reset_title: 'Reset sample data?', reset_text: 'All changes in this browser will be lost. The register starts again with the sample cultures.', reset_do: 'Reset',
+    t_saved: 'Saved', t_logged: 'Logged', t_removed: 'Culture removed', t_reset: 'Sample data restored',
+    days: '{0} d'
+  }
+};
+
+/* ---------- Helpers ---------- */
+function $(id) { return document.getElementById(id); }
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+  });
+}
+function pad(n, w) { return String(n).padStart(w || 2, '0'); }
+function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function today() { return iso(new Date()); }
+function parseDate(s) { var p = s.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+function addDays(s, n) { var d = parseDate(s); d.setDate(d.getDate() + n); return iso(d); }
+function diffDays(a, b) { return Math.round((parseDate(a) - parseDate(b)) / 864e5); }
+function locale() { return ui.lang === 'de' ? 'de-DE' : 'en-GB'; }
+function fmtDate(s) { return s ? parseDate(s).toLocaleDateString(locale(), { day: '2-digit', month: '2-digit', year: 'numeric' }) : '–'; }
+function fmtTs(ts) { return new Date(ts).toLocaleString(locale(), { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+function fmtNum(n) { return n.toLocaleString(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
+var uidN = 0;
+function uid() { uidN += 1; return 'e' + Date.now().toString(36) + uidN.toString(36) + Math.floor(Math.random() * 1e4).toString(36); }
+function t(key) {
+  var s = I18N[ui.lang][key];
+  if (s == null) s = I18N.de[key] != null ? I18N.de[key] : key;
+  for (var i = 1; i < arguments.length; i++) s = s.replace('{' + (i - 1) + '}', arguments[i]);
+  return s;
+}
+function userById(id) { return USERS.find(function (u) { return u.id === id; }) || { id: id, name: '?', hue: 0 }; }
+function incById(id) { return INCUBATORS.find(function (i) { return i.id === id; }) || INCUBATORS[0]; }
+function incName(inc) { return t('incubator') + ' ' + inc.n; }
+function placeText(incId, shelf) { return incName(incById(incId)) + ' / ' + t('shelf') + ' ' + shelf; }
+function avatar(userId) {
+  var u = userById(userId);
+  var ini = u.name.split(/\s+/).map(function (w) { return w[0]; }).join('').slice(0, 2).toUpperCase();
+  return '<span class="avatar" style="background:hsl(' + u.hue + ' 48% 38%)" title="' + esc(u.name) + '">' + esc(ini) + '</span>';
+}
+function vesselText(c) { return c.count + '× ' + c.vessel; }
+
+function store(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* demo also works without storage */ } }
+function read(key) { try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+
+/* ---------- Sample data (dates relative to today, so the demo always looks current) ---------- */
+function seed(lang) {
+  function L(de, en) { return lang === 'en' ? en : de; }
+  function at(daysAgo, h, m) { var d = new Date(); d.setDate(d.getDate() - daysAgo); d.setHours(h, m, 0, 0); return d.getTime(); }
+  var T = today();
+  var cultures = [], events = [], n = 100;
+  function add(o, extra) {
+    n += 1;
+    var c = {
+      id: 'K-' + pad(n, 4), cellLine: o.cellLine, passage: o.passage, vessel: o.vessel, count: o.count || 1,
+      medium: o.medium, supplements: o.supplements || '', seeded: addDays(T, -o.age),
+      incubator: o.incubator, shelf: o.shelf, owner: o.owner, project: o.project || '',
+      nextType: o.nextType || 'none', nextDue: o.nextType && o.nextType !== 'none' ? addDays(T, o.dueIn) : '',
+      mycoDate: o.mycoAge != null ? addDays(T, -o.mycoAge) : '', mycoResult: o.mycoAge != null ? 'neg' : 'open',
+      confluence: o.confluence != null ? o.confluence : null, bsl: o.bsl || 'S1', notes: o.notes || '',
+      status: o.removed ? 'removed' : 'active', removedAt: o.removed ? addDays(T, -o.removed.age) : '', removedReason: o.removed ? o.removed.reason : ''
+    };
+    cultures.push(c);
+    events.push({ id: uid(), cultureId: c.id, type: 'seeded', user: c.owner, ts: at(o.age, 9, 20 + cultures.length), passage: c.passage });
+    (extra || []).forEach(function (e) { events.push(Object.assign({ id: uid(), cultureId: c.id, user: c.owner }, e)); });
+    if (o.removed) events.push({ id: uid(), cultureId: c.id, type: 'removed', user: c.owner, ts: at(o.removed.age, 16, 5), reason: o.removed.reason, note: o.removed.note || '' });
+  }
+  var fbs = '10 % FBS, 1 % Pen/Strep';
+
+  add({ cellLine: 'HeLa', passage: 14, vessel: 'T75', count: 2, medium: 'DMEM', supplements: fbs, age: 3, incubator: 'i1', shelf: 1, owner: 'u1',
+        project: L('Mitose-Imaging', 'Mitosis imaging'), nextType: 'split', dueIn: 0, mycoAge: 21, confluence: 85 },
+      [{ type: 'check', ts: at(1, 10, 12), confluence: 85, note: L('Morphologie unauffällig', 'Morphology normal') }]);
+  add({ cellLine: 'HEK293T', passage: 22, vessel: 'T175', count: 1, medium: 'DMEM', supplements: fbs, age: 2, incubator: 'i1', shelf: 1, owner: 'u2',
+        project: L('Lentivirus-Produktion', 'Lentivirus production'), nextType: 'split', dueIn: 1, mycoAge: 12, confluence: 60 });
+  add({ cellLine: 'A549', passage: 9, vessel: '6-Well', count: 3, medium: 'F-12K', supplements: '10 % FBS', age: 4, incubator: 'i1', shelf: 2, owner: 'u3',
+        project: L('Zytotox-Assay', 'Cytotoxicity assay'), nextType: 'medium', dueIn: -1, mycoAge: 30, confluence: 70,
+        notes: L('Platte 3 ist die unbehandelte Kontrolle.', 'Plate 3 is the untreated control.') },
+      [{ type: 'medium', ts: at(2, 14, 40) }]);
+  add({ cellLine: 'MCF-7', passage: 31, vessel: 'T25', count: 2, medium: 'RPMI 1640', supplements: '10 % FBS, 10 µg/ml Insulin', age: 6, incubator: 'i1', shelf: 2, owner: 'u1',
+        project: L('Hormonantwort', 'Hormone response'), nextType: 'medium', dueIn: 1, mycoAge: 21, confluence: 50 },
+      [{ type: 'medium', ts: at(4, 11, 5) }, { type: 'medium', ts: at(2, 11, 30) }]);
+  add({ cellLine: 'Jurkat', passage: 18, vessel: 'T75', count: 1, medium: 'RPMI 1640', supplements: '10 % FBS', age: 2, incubator: 'i1', shelf: 3, owner: 'u4',
+        project: L('T-Zell-Aktivierung', 'T cell activation'), nextType: 'split', dueIn: 1,
+        notes: L('Suspensionskultur, Flasche stehend lagern.', 'Suspension culture, keep flask upright.') });
+  add({ cellLine: 'U2OS', passage: 12, vessel: 'Petri 10 cm', count: 4, medium: 'DMEM', supplements: fbs, age: 1, incubator: 'i1', shelf: 3, owner: 'u2',
+        project: 'CRISPR-Screen', nextType: 'check', dueIn: 0, mycoAge: 12 });
+  add({ cellLine: 'CHO-K1', passage: 40, vessel: 'T75', count: 1, medium: "Ham's F-12", supplements: '10 % FBS', age: 5, incubator: 'i1', shelf: 4, owner: 'u3',
+        project: L('Proteinexpression', 'Protein expression'), nextType: 'split', dueIn: -2, confluence: 95 },
+      [{ type: 'check', ts: at(1, 17, 45), confluence: 95, note: L('Sehr dicht, bald passagieren.', 'Very dense, passage soon.') }]);
+  add({ cellLine: 'hiPSC (WT-01)', passage: 27, vessel: '6-Well', count: 2, medium: 'mTeSR Plus', age: 3, incubator: 'i2', shelf: 1, owner: 'u3',
+        project: L('Kardiomyozyten-Differenzierung', 'Cardiomyocyte differentiation'), nextType: 'medium', dueIn: 0, mycoAge: 7, confluence: 55,
+        notes: L('Matrigel-beschichtet. Medium täglich wechseln.', 'Matrigel-coated. Change medium daily.') },
+      [{ type: 'medium', ts: at(2, 9, 50) }, { type: 'medium', ts: at(1, 9, 40) }]);
+  add({ cellLine: 'SH-SY5Y', passage: 8, vessel: 'T25', count: 3, medium: 'DMEM/F-12', supplements: fbs, age: 7, incubator: 'i2', shelf: 1, owner: 'u4',
+        project: L('Neuronale Differenzierung', 'Neuronal differentiation'), nextType: 'medium', dueIn: 2, confluence: 65 },
+      [{ type: 'medium', ts: at(4, 15, 10) }, { type: 'medium', ts: at(1, 15, 25) }]);
+  add({ cellLine: 'HepG2', passage: 16, vessel: '24-Well', count: 2, medium: 'EMEM', supplements: '10 % FBS', age: 2, incubator: 'i2', shelf: 2, owner: 'u1',
+        project: L('Hypoxie-Antwort', 'Hypoxia response'), nextType: 'check', dueIn: 1, mycoAge: 21 });
+  add({ cellLine: 'HEK293T', passage: 23, vessel: 'T25', count: 2, medium: 'DMEM', supplements: fbs, age: 3, incubator: 'i2', shelf: 3, owner: 'u2',
+        project: L('Lentivirus-Produktion', 'Lentivirus production'), nextType: 'medium', dueIn: 1, bsl: 'S2',
+        notes: L('Lentiviral transduziert. Nur in Werkbank 3 öffnen.', 'Lentivirally transduced. Open in safety cabinet 3 only.') });
+  add({ cellLine: 'NIH/3T3', passage: 19, vessel: 'T75', count: 1, medium: 'DMEM', supplements: '10 % CS', age: 12, incubator: 'i1', shelf: 4, owner: 'u4',
+        project: L('Migrations-Assay', 'Migration assay'),
+        removed: { age: 5, reason: 'contaminated', note: L('Trübung und pH-Umschlag, vermutlich bakteriell.', 'Turbid with pH shift, probably bacterial.') } });
+  add({ cellLine: 'HeLa', passage: 13, vessel: 'T75', count: 1, medium: 'DMEM', supplements: fbs, age: 8, incubator: 'i1', shelf: 1, owner: 'u1',
+        project: L('Mitose-Imaging', 'Mitosis imaging'), mycoAge: 21, removed: { age: 3, reason: 'used' } });
+
+  return { cultures: cultures, events: events };
+}
+
+/* ---------- State ---------- */
+var prefs = read(LS_PREFS) || {};
+var ui = {
+  lang: prefs.lang === 'de' || prefs.lang === 'en' ? prefs.lang : ((navigator.language || 'de').toLowerCase().indexOf('de') === 0 ? 'de' : 'en'),
+  user: USERS.some(function (u) { return u.id === prefs.user; }) ? prefs.user : 'u1',
+  view: 'inc', q: '', mine: false, status: 'active'
+};
+var db = read(LS_DATA);
+if (!db || !Array.isArray(db.cultures) || !Array.isArray(db.events)) { db = seed(ui.lang); }
+
+function saveDb() { store(LS_DATA, db); }
+function savePrefs() { store(LS_PREFS, { lang: ui.lang, user: ui.user }); }
+function cultureById(id) { return db.cultures.find(function (c) { return c.id === id; }); }
+function logEvent(cultureId, type, extra) {
+  db.events.push(Object.assign({ id: uid(), cultureId: cultureId, type: type, user: ui.user, ts: Date.now() }, extra || {}));
+}
+function nextId() {
+  var max = db.cultures.reduce(function (m, c) { var v = parseInt(c.id.replace(/\D/g, ''), 10); return v > m ? v : m; }, 100);
+  return 'K-' + pad(max + 1, 4);
+}
+
+function dueInfo(c) {
+  if (c.status !== 'active') return { cls: 'off', label: t('st_removed'), rank: 9999 };
+  if (!c.nextDue || c.nextType === 'none') return { cls: 'none', label: t('no_action'), rank: 9998 };
+  var d = diffDays(c.nextDue, today());
+  if (d < 0) return { cls: 'crit', label: t('overdue', -d), rank: d };
+  if (d === 0) return { cls: 'warn', label: t('due_today'), rank: 0 };
+  if (d === 1) return { cls: 'ok', label: t('due_tomorrow'), rank: 1 };
+  return { cls: 'ok', label: t('due_in', d), rank: d };
+}
+function matches(c) {
+  if (ui.mine && c.owner !== ui.user) return false;
+  var q = ui.q.trim().toLowerCase();
+  if (!q) return true;
+  var hay = [c.id, c.cellLine, c.project, c.medium, c.supplements, c.vessel, c.notes, userById(c.owner).name].join(' ').toLowerCase();
+  return hay.indexOf(q) !== -1;
+}
+function byDue(a, b) { return dueInfo(a).rank - dueInfo(b).rank || a.id.localeCompare(b.id); }
+
+/* ---------- Rendering: shell ---------- */
+function renderShell() {
+  document.documentElement.lang = ui.lang;
+  $('app-title').textContent = t('title');
+  $('app-sub').textContent = t('sub');
+  $('who-label').textContent = t('who');
+  $('lang-seg').setAttribute('aria-label', t('lang'));
+  Array.prototype.forEach.call($('lang-seg').children, function (b) { b.setAttribute('aria-pressed', String(b.dataset.lang === ui.lang)); });
+  $('user-select').innerHTML = USERS.map(function (u) { return '<option value="' + u.id + '"' + (u.id === ui.user ? ' selected' : '') + '>' + esc(u.name) + '</option>'; }).join('');
+  $('demo-text').textContent = t('demo');
+  $('reset-btn').textContent = t('reset');
+  $('tabs').innerHTML = [['inc', 'tab_inc'], ['list', 'tab_list'], ['log', 'tab_log']].map(function (v) {
+    return '<button type="button" role="tab" data-view="' + v[0] + '" aria-selected="' + (ui.view === v[0]) + '">' + t(v[1]) + '</button>';
+  }).join('');
+  $('q').placeholder = t('search');
+  $('q').setAttribute('aria-label', t('search'));
+  $('mine-label').textContent = t('mine');
+  $('mine').checked = ui.mine;
+  $('new-btn').textContent = t('new');
+  $('status-filter').innerHTML = [['active', 'f_active'], ['removed', 'f_removed'], ['all', 'f_all']].map(function (o) {
+    return '<option value="' + o[0] + '"' + (ui.status === o[0] ? ' selected' : '') + '>' + t(o[1]) + '</option>';
+  }).join('');
+  $('status-filter').setAttribute('aria-label', t('c_status'));
+  $('status-filter').hidden = ui.view !== 'list';
+  renderBody();
+}
+
+function renderSummary() {
+  var active = db.cultures.filter(function (c) { return c.status === 'active'; });
+  var todayN = 0, over = 0, mine = 0;
+  active.forEach(function (c) {
+    var d = dueInfo(c);
+    if (d.cls === 'warn') todayN += 1;
+    if (d.cls === 'crit') over += 1;
+    if (c.owner === ui.user) mine += 1;
+  });
+  $('summary').innerHTML =
+    '<span class="stat"><b>' + active.length + '</b> ' + t('sum_active') + '</span>' +
+    '<span class="stat' + (todayN ? ' warn' : '') + '"><b>' + todayN + '</b> ' + t('sum_today') + '</span>' +
+    '<span class="stat' + (over ? ' crit' : '') + '"><b>' + over + '</b> ' + t('sum_over') + '</span>' +
+    '<span class="stat"><b>' + mine + '</b> ' + t('sum_mine') + '</span>';
+}
+
+/* ---------- Rendering: views ---------- */
+function renderBody() {
+  renderSummary();
+  var html = ui.view === 'inc' ? viewIncubators() : ui.view === 'list' ? viewList() : viewLog();
+  $('body').innerHTML = html;
+}
+
+function tile(c) {
+  var d = dueInfo(c);
+  var action = c.nextType !== 'none' && c.nextDue ? t('next_' + c.nextType) : '';
+  return '<button type="button" class="tile s-' + d.cls + (matches(c) ? '' : ' dim') + '" data-open="' + esc(c.id) + '">' +
+    '<span class="tile-top"><span class="cl">' + esc(c.cellLine) + '</span>' + (c.bsl === 'S2' ? '<span class="pill bsl">S2</span>' : '') + '</span>' +
+    '<span class="tile-meta mono">' + esc(c.id) + ' · P' + esc(c.passage) + ' · ' + esc(vesselText(c)) + '</span>' +
+    '<span class="tile-foot">' + avatar(c.owner) + (action ? '<span>' + esc(action) + '</span>' : '') + '<span class="pill ' + d.cls + '">' + esc(d.label) + '</span></span>' +
+    '</button>';
+}
+
+function viewIncubators() {
+  return INCUBATORS.map(function (inc) {
+    var shelves = '';
+    for (var s = 1; s <= inc.shelves; s++) {
+      var items = db.cultures.filter(function (c) { return c.status === 'active' && c.incubator === inc.id && Number(c.shelf) === s; }).sort(byDue);
+      shelves += '<li class="shelf"><div class="shelf-label">' + t('shelf') + ' ' + s + '</div><div class="shelf-items">' +
+        items.map(tile).join('') +
+        '<button type="button" class="add-slot" data-act="new" data-inc="' + inc.id + '" data-shelf="' + s + '">' + (items.length ? t('add_here') : t('shelf_empty') + ' · ' + t('add_here')) + '</button>' +
+        '</div></li>';
+    }
+    return '<section class="cabinet"><header class="cab-head">' +
+      '<h2>' + esc(incName(inc)) + '<span class="room">' + t('room') + ' ' + esc(inc.room) + '</span></h2>' +
+      '<div class="display"><span>' + fmtNum(inc.temp) + ' °C</span><span>' + fmtNum(inc.co2) + ' % CO₂</span>' +
+      (inc.o2 != null ? '<span>' + fmtNum(inc.o2) + ' % O₂</span>' : '') + '<span>95 % ' + t('rh') + '</span></div>' +
+      '</header><ol class="shelves">' + shelves + '</ol></section>';
+  }).join('');
+}
+
+function viewList() {
+  var rows = db.cultures.filter(function (c) {
+    return (ui.status === 'all' || c.status === ui.status) && matches(c);
+  }).sort(byDue);
+  if (!rows.length) return '<p class="empty">' + t('none_found') + '</p>';
+  var head = ['c_id', 'c_line', 'c_passage', 'c_vessel', 'c_medium', 'c_place', 'c_owner', 'c_days', 'c_next', 'c_status'];
+  return '<div class="table-wrap"><table><thead><tr>' + head.map(function (h) { return '<th scope="col">' + t(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+    rows.map(function (c) {
+      var d = dueInfo(c);
+      var end = c.status === 'active' ? today() : (c.removedAt || today());
+      return '<tr>' +
+        '<td class="num"><button type="button" class="link" data-open="' + esc(c.id) + '">' + esc(c.id) + '</button></td>' +
+        '<td><b>' + esc(c.cellLine) + '</b>' + (c.bsl === 'S2' ? ' <span class="pill bsl">S2</span>' : '') + '</td>' +
+        '<td class="num">P' + esc(c.passage) + '</td>' +
+        '<td class="num">' + esc(vesselText(c)) + '</td>' +
+        '<td>' + esc(c.medium) + '</td>' +
+        '<td>' + esc(placeText(c.incubator, c.shelf)) + '</td>' +
+        '<td><span class="owner-cell">' + avatar(c.owner) + esc(userById(c.owner).name) + '</span></td>' +
+        '<td class="num">' + diffDays(end, c.seeded) + '</td>' +
+        '<td>' + (c.status === 'active' && c.nextType !== 'none' && c.nextDue ? esc(t('next_' + c.nextType)) + ' · <span class="mono">' + fmtDate(c.nextDue) + '</span>' : '–') + '</td>' +
+        '<td><span class="pill ' + d.cls + '">' + esc(c.status === 'active' ? d.label : t('r_' + c.removedReason)) + '</span></td>' +
+        '</tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
+function eventText(e) {
+  var s = t('e_' + e.type);
+  if (e.type === 'seeded' && e.passage != null) s += ' (P' + e.passage + ')';
+  if (e.type === 'passage') s += ' → P' + e.passage + (e.ratio ? ' (' + e.ratio + ')' : '');
+  if (e.type === 'moved') s += ': ' + placeText(e.from.incubator, e.from.shelf) + ' → ' + placeText(e.to.incubator, e.to.shelf);
+  if (e.type === 'removed' && e.reason) s += ': ' + t('r_' + e.reason);
+  if (e.confluence != null && e.confluence !== '') s += ' · ' + t('c_conf') + ' ' + e.confluence + ' %';
+  return s;
+}
+function logItem(e, withCulture) {
+  var c = cultureById(e.cultureId);
+  return '<li><span class="when">' + fmtTs(e.ts) + '</span>' + avatar(e.user) +
+    '<div class="what"><b>' + esc(eventText(e)) + '</b>' +
+    (withCulture && c ? ' · <button type="button" class="link" data-open="' + esc(c.id) + '">' + esc(c.cellLine) + ' <span class="mono">' + esc(c.id) + '</span></button>' : '') +
+    ' <span class="muted">· ' + esc(userById(e.user).name) + '</span>' +
+    (e.note ? '<div class="note">' + esc(e.note) + '</div>' : '') + '</div></li>';
+}
+function viewLog() {
+  var q = ui.q.trim().toLowerCase();
+  var list = db.events.filter(function (e) {
+    var c = cultureById(e.cultureId);
+    if (!c) return false;
+    if (ui.mine && e.user !== ui.user) return false;
+    if (!q) return true;
+    return [c.id, c.cellLine, c.project, userById(e.user).name, e.note || '', eventText(e)].join(' ').toLowerCase().indexOf(q) !== -1;
+  }).sort(function (a, b) { return b.ts - a.ts; }).slice(0, 80);
+  if (!list.length) return '<p class="empty">' + t('none_found') + '</p>';
+  return '<ol class="log">' + list.map(function (e) { return logItem(e, true); }).join('') + '</ol>';
+}
+
+/* ---------- Dialogs ---------- */
+var dlg = $('dlg');
+function openDlg(html) {
+  dlg.innerHTML = html;
+  if (!dlg.open) dlg.showModal();
+  dlg.scrollTop = 0;
+}
+function closeDlg() { if (dlg.open) dlg.close(); dlg.innerHTML = ''; }
+function dlgHead(title, sub) {
+  return '<div class="dlg-head"><div><h2>' + esc(title) + '</h2>' + (sub ? '<div class="id mono">' + esc(sub) + '</div>' : '') + '</div>' +
+    '<button type="button" class="x" data-act="close" aria-label="' + t('close') + '">×</button></div>';
+}
+function opt(value, label, selected) { return '<option value="' + esc(value) + '"' + (selected ? ' selected' : '') + '>' + esc(label) + '</option>'; }
+function field(label, control, wide) { return '<label class="field' + (wide ? ' wide' : '') + '"><span>' + esc(label) + '</span>' + control + '</label>'; }
+function shelfOptions(incId, selected) {
+  var out = '';
+  for (var s = 1; s <= incById(incId).shelves; s++) out += opt(s, t('shelf') + ' ' + s, Number(selected) === s);
+  return out;
+}
+function nextFields(type, due) {
+  return '<div class="field wide"><span>' + t('then') + '</span><div class="pair">' +
+    '<select id="f-nextType" aria-label="' + t('c_next') + '">' + NEXT_TYPES.map(function (n) { return opt(n, t('next_' + n), n === type); }).join('') + '</select>' +
+    '<input type="date" id="f-nextDue" aria-label="' + t('c_due') + '" value="' + esc(due || '') + '">' +
+    '</div></div>';
+}
+
+function openDetail(id) {
+  var c = cultureById(id);
+  if (!c) return;
+  var d = dueInfo(c);
+  var active = c.status === 'active';
+  var end = active ? today() : (c.removedAt || today());
+  function fact(label, value, wide) { return '<div' + (wide ? ' class="wide"' : '') + '><dt>' + esc(label) + '</dt><dd>' + value + '</dd></div>'; }
+  var events = db.events.filter(function (e) { return e.cultureId === id; }).sort(function (a, b) { return b.ts - a.ts; });
+  var myco = c.mycoResult === 'open' ? t('myco_open') : t('myco_' + c.mycoResult) + (c.mycoDate ? ' · ' + fmtDate(c.mycoDate) : '');
+  openDlg('<div class="dlg">' + dlgHead(c.cellLine, c.id) +
+    '<div class="pills"><span class="pill ' + d.cls + '">' + esc(active && c.nextType !== 'none' && c.nextDue ? t('next_' + c.nextType) + ' · ' + d.label : d.label) + '</span>' +
+    (c.bsl === 'S2' ? '<span class="pill bsl">S2</span>' : '') +
+    (!active ? '<span class="pill off">' + esc(t('r_' + c.removedReason)) + '</span>' : '') + '</div>' +
+    '<dl class="facts">' +
+    fact(t('c_passage'), '<span class="mono">P' + esc(c.passage) + '</span>') +
+    fact(t('c_vessel'), '<span class="mono">' + esc(vesselText(c)) + '</span>') +
+    fact(t('c_place'), esc(placeText(c.incubator, c.shelf))) +
+    fact(t('c_medium'), esc(c.medium) + (c.supplements ? '<br><span class="muted">' + esc(c.supplements) + '</span>' : '')) +
+    fact(t('c_seeded'), '<span class="mono">' + fmtDate(c.seeded) + '</span> <span class="muted">(' + t('days', diffDays(end, c.seeded)) + ')</span>') +
+    fact(t('c_conf'), c.confluence != null && c.confluence !== '' ? '<span class="mono">' + esc(c.confluence) + ' %</span>' : '–') +
+    fact(t('c_owner'), '<span class="owner-cell">' + avatar(c.owner) + esc(userById(c.owner).name) + '</span>') +
+    fact(t('c_project'), esc(c.project) || '–') +
+    fact(t('c_myco'), esc(myco)) +
+    (active ? fact(t('c_due'), c.nextDue && c.nextType !== 'none' ? '<span class="mono">' + fmtDate(c.nextDue) + '</span>' : '–')
+            : fact(t('removed_on'), '<span class="mono">' + fmtDate(c.removedAt) + '</span>')) +
+    (c.notes ? fact(t('c_notes'), esc(c.notes), true) : '') +
+    '</dl>' +
+    (active ? '<div class="actions">' +
+      '<button type="button" class="btn primary" data-do="medium" data-id="' + esc(id) + '">' + t('a_medium') + '</button>' +
+      '<button type="button" class="btn primary" data-do="passage" data-id="' + esc(id) + '">' + t('a_passage') + '</button>' +
+      '<button type="button" class="btn" data-do="check" data-id="' + esc(id) + '">' + t('a_check') + '</button>' +
+      '<button type="button" class="btn" data-do="note" data-id="' + esc(id) + '">' + t('a_note') + '</button>' +
+      '<button type="button" class="btn" data-do="edit" data-id="' + esc(id) + '">' + t('a_edit') + '</button>' +
+      '<button type="button" class="btn danger" data-do="remove" data-id="' + esc(id) + '">' + t('a_remove') + '</button>' +
+      '</div>' : '') +
+    '<div class="sect">' + t('history') + '</div>' +
+    '<ol class="log">' + events.map(function (e) { return logItem(e, false); }).join('') + '</ol>' +
+    '</div>');
+}
+
+function openCultureForm(id, preset) {
+  var c = id ? cultureById(id) : null;
+  var v = c || Object.assign({
+    cellLine: '', passage: 1, vessel: 'T75', count: 1, medium: '', supplements: '', seeded: today(),
+    incubator: 'i1', shelf: 1, owner: ui.user, project: '', nextType: 'medium', nextDue: addDays(today(), 2),
+    mycoDate: '', mycoResult: 'open', bsl: 'S1', notes: ''
+  }, preset || {});
+  openDlg('<form class="dlg" id="culture-form" data-id="' + esc(id || '') + '">' + dlgHead(c ? t('form_edit') : t('form_new'), c ? c.id : '') +
+    '<div class="form-grid">' +
+    field(t('c_line') + ' *', '<input type="text" id="f-cellLine" list="dl-lines" required maxlength="60" value="' + esc(v.cellLine) + '">') +
+    field(t('c_passage'), '<input type="number" id="f-passage" min="0" max="999" step="1" required value="' + esc(v.passage) + '">') +
+    field(t('c_vessel'), '<select id="f-vessel">' + VESSELS.map(function (x) { return opt(x, x, x === v.vessel); }).join('') + '</select>') +
+    field(t('c_count'), '<input type="number" id="f-count" min="1" max="99" step="1" required value="' + esc(v.count) + '">') +
+    field(t('c_medium'), '<input type="text" id="f-medium" list="dl-media" maxlength="60" value="' + esc(v.medium) + '">') +
+    field(t('c_supp'), '<input type="text" id="f-supplements" maxlength="120" placeholder="' + esc(t('ph_supp')) + '" value="' + esc(v.supplements) + '">') +
+    field(t('incubator'), '<select id="f-incubator">' + INCUBATORS.map(function (i) { return opt(i.id, incName(i), i.id === v.incubator); }).join('') + '</select>') +
+    field(t('shelf'), '<select id="f-shelf">' + shelfOptions(v.incubator, v.shelf) + '</select>') +
+    field(t('c_seeded'), '<input type="date" id="f-seeded" required value="' + esc(v.seeded) + '">') +
+    field(t('c_owner'), '<select id="f-owner">' + USERS.map(function (u) { return opt(u.id, u.name, u.id === v.owner); }).join('') + '</select>') +
+    field(t('c_project'), '<input type="text" id="f-project" maxlength="80" value="' + esc(v.project) + '">') +
+    field(t('c_bsl'), '<select id="f-bsl">' + opt('S1', 'S1', v.bsl === 'S1') + opt('S2', 'S2', v.bsl === 'S2') + '</select>') +
+    field(t('c_next'), '<select id="f-nextType">' + NEXT_TYPES.map(function (n) { return opt(n, t('next_' + n), n === v.nextType); }).join('') + '</select>') +
+    field(t('c_due'), '<input type="date" id="f-nextDue" value="' + esc(v.nextDue) + '">') +
+    field(t('c_myco_res'), '<select id="f-mycoResult">' + ['open', 'neg', 'pos'].map(function (m) { return opt(m, t('myco_' + m), m === v.mycoResult); }).join('') + '</select>') +
+    field(t('c_myco_date'), '<input type="date" id="f-mycoDate" value="' + esc(v.mycoDate) + '">') +
+    field(t('c_notes'), '<textarea id="f-notes" maxlength="500">' + esc(v.notes) + '</textarea>', true) +
+    '</div>' +
+    '<datalist id="dl-lines">' + CELL_LINES.map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>' +
+    '<datalist id="dl-media">' + MEDIA.map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>' +
+    '<div class="dlg-foot"><button type="button" class="btn" data-act="' + (c ? 'back' : 'close') + '" data-id="' + esc(id || '') + '">' + t('cancel') + '</button>' +
+    '<button type="submit" class="btn primary">' + t('save') + '</button></div></form>');
+}
+
+function openAction(id, type) {
+  var c = cultureById(id);
+  if (!c) return;
+  var body = '';
+  var nextType = c.nextType, nextDue = c.nextDue;
+  if (type === 'medium') { nextType = 'medium'; nextDue = addDays(today(), 2); }
+  if (type === 'passage') {
+    nextType = 'medium'; nextDue = addDays(today(), 2);
+    body += field(t('new_passage'), '<input type="number" id="f-passage" min="0" max="999" step="1" required value="' + (Number(c.passage) + 1) + '">') +
+            field(t('ratio'), '<input type="text" id="f-ratio" maxlength="20" placeholder="' + esc(t('ph_ratio')) + '">');
+  }
+  if (type === 'medium' || type === 'check') {
+    body += field(t('conf_pct'), '<input type="number" id="f-confluence" min="0" max="100" step="5" value="' + (c.confluence != null ? esc(c.confluence) : '') + '">', true);
+  }
+  body += field(t('note'), '<textarea id="f-note" maxlength="300"' + (type === 'note' ? ' required' : '') + '></textarea>', true);
+  if (type !== 'note') body += nextFields(nextType, nextDue);
+  openDlg('<form class="dlg" id="action-form" data-id="' + esc(id) + '" data-type="' + type + '">' + dlgHead(t('act_' + type), c.cellLine + ' · ' + c.id) +
+    '<div class="form-grid">' + body + '</div>' +
+    '<div class="dlg-foot"><button type="button" class="btn" data-act="back" data-id="' + esc(id) + '">' + t('cancel') + '</button>' +
+    '<button type="submit" class="btn primary">' + t('log_it') + '</button></div></form>');
+}
+
+function openRemove(id) {
+  var c = cultureById(id);
+  if (!c) return;
+  openDlg('<form class="dlg" id="remove-form" data-id="' + esc(id) + '">' + dlgHead(t('remove_title'), c.cellLine + ' · ' + c.id) +
+    '<div class="form-grid">' +
+    field(t('reason'), '<select id="f-reason">' + REASONS.map(function (r) { return opt(r, t('r_' + r), false); }).join('') + '</select>', true) +
+    field(t('note'), '<textarea id="f-note" maxlength="300"></textarea>', true) +
+    '</div><div class="dlg-foot"><button type="button" class="btn" data-act="back" data-id="' + esc(id) + '">' + t('cancel') + '</button>' +
+    '<button type="submit" class="btn danger">' + t('remove_do') + '</button></div></form>');
+}
+
+function openReset() {
+  openDlg('<div class="dlg">' + dlgHead(t('reset_title')) + '<p>' + t('reset_text') + '</p>' +
+    '<div class="dlg-foot"><button type="button" class="btn" data-act="close">' + t('cancel') + '</button>' +
+    '<button type="button" class="btn danger" data-act="reset-confirm">' + t('reset_do') + '</button></div></div>');
+}
+
+var toastTimer = null;
+function toast(msg) {
+  var el = $('toast');
+  el.textContent = msg;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { el.hidden = true; }, 2200);
+}
+
+/* ---------- Form handling ---------- */
+function val(id) { var el = $(id); return el ? el.value.trim() : ''; }
+function numOrNull(id) { var v = val(id); return v === '' ? null : Number(v); }
+
+function submitCulture(form) {
+  var id = form.dataset.id;
+  var data = {
+    cellLine: val('f-cellLine'), passage: Number(val('f-passage')) || 0, vessel: val('f-vessel'), count: Number(val('f-count')) || 1,
+    medium: val('f-medium'), supplements: val('f-supplements'), seeded: val('f-seeded') || today(),
+    incubator: val('f-incubator'), shelf: Number(val('f-shelf')) || 1, owner: val('f-owner'), project: val('f-project'),
+    nextType: val('f-nextType'), nextDue: val('f-nextDue'), mycoResult: val('f-mycoResult'), mycoDate: val('f-mycoDate'),
+    bsl: val('f-bsl'), notes: val('f-notes')
+  };
+  if (!data.cellLine) return;
+  if (data.nextType === 'none') data.nextDue = '';
+  if (id) {
+    var c = cultureById(id);
+    var moved = c.incubator !== data.incubator || Number(c.shelf) !== data.shelf;
+    var from = { incubator: c.incubator, shelf: c.shelf };
+    Object.assign(c, data);
+    if (moved) logEvent(id, 'moved', { from: from, to: { incubator: data.incubator, shelf: data.shelf } });
+    else logEvent(id, 'edited');
+  } else {
+    id = nextId();
+    db.cultures.push(Object.assign({ id: id, confluence: null, status: 'active', removedAt: '', removedReason: '' }, data));
+    logEvent(id, 'seeded', { passage: data.passage });
+  }
+  saveDb(); renderBody(); openDetail(id); toast(t('t_saved'));
+}
+
+function submitAction(form) {
+  var id = form.dataset.id, type = form.dataset.type;
+  var c = cultureById(id);
+  if (!c) return;
+  var extra = { note: val('f-note') };
+  if (type === 'note' && !extra.note) return;
+  if (type === 'passage') {
+    c.passage = Number(val('f-passage')) || Number(c.passage) + 1;
+    c.seeded = today();
+    c.confluence = null;
+    extra.passage = c.passage;
+    extra.ratio = val('f-ratio');
+  }
+  if (type === 'medium' || type === 'check') {
+    var conf = numOrNull('f-confluence');
+    if (conf != null) { c.confluence = conf; extra.confluence = conf; }
+  }
+  if (type !== 'note') {
+    c.nextType = val('f-nextType') || 'none';
+    c.nextDue = c.nextType === 'none' ? '' : val('f-nextDue');
+  }
+  logEvent(id, type, extra);
+  saveDb(); renderBody(); openDetail(id); toast(t('t_logged'));
+}
+
+function submitRemove(form) {
+  var id = form.dataset.id;
+  var c = cultureById(id);
+  if (!c) return;
+  c.status = 'removed';
+  c.removedAt = today();
+  c.removedReason = val('f-reason') || 'discarded';
+  logEvent(id, 'removed', { reason: c.removedReason, note: val('f-note') });
+  saveDb(); renderBody(); closeDlg(); toast(t('t_removed'));
+}
+
+/* ---------- Events ---------- */
+document.addEventListener('click', function (ev) {
+  var el = ev.target.closest('[data-open],[data-act],[data-do],[data-view],[data-lang]');
+  if (!el) {
+    if (ev.target === dlg) closeDlg();   // click on the backdrop
+    return;
+  }
+  if (el.dataset.open) { openDetail(el.dataset.open); return; }
+  if (el.dataset.view) { ui.view = el.dataset.view; renderShell(); return; }
+  if (el.dataset.lang) { ui.lang = el.dataset.lang; savePrefs(); renderShell(); return; }
+  if (el.dataset.do) {
+    var id = el.dataset.id, what = el.dataset.do;
+    if (what === 'edit') openCultureForm(id);
+    else if (what === 'remove') openRemove(id);
+    else openAction(id, what);
+    return;
+  }
+  var act = el.dataset.act;
+  if (act === 'close') closeDlg();
+  else if (act === 'back') openDetail(el.dataset.id);
+  else if (act === 'new') openCultureForm(null, el.dataset.inc ? { incubator: el.dataset.inc, shelf: Number(el.dataset.shelf) } : null);
+  else if (act === 'reset') openReset();
+  else if (act === 'reset-confirm') { db = seed(ui.lang); saveDb(); closeDlg(); renderBody(); toast(t('t_reset')); }
+});
+
+document.addEventListener('submit', function (ev) {
+  ev.preventDefault();
+  var form = ev.target;
+  if (form.id === 'culture-form') submitCulture(form);
+  else if (form.id === 'action-form') submitAction(form);
+  else if (form.id === 'remove-form') submitRemove(form);
+});
+
+document.addEventListener('change', function (ev) {
+  var el = ev.target;
+  if (el.id === 'user-select') { ui.user = el.value; savePrefs(); renderBody(); }
+  else if (el.id === 'mine') { ui.mine = el.checked; renderBody(); }
+  else if (el.id === 'status-filter') { ui.status = el.value; renderBody(); }
+  else if (el.id === 'f-incubator' && $('f-shelf')) { $('f-shelf').innerHTML = shelfOptions(el.value, 1); }
+  else if (el.id === 'f-nextType' && $('f-nextDue') && el.value !== 'none' && !$('f-nextDue').value) { $('f-nextDue').value = addDays(today(), 2); }
+});
+
+$('q').addEventListener('input', function (ev) { ui.q = ev.target.value; renderBody(); });
+dlg.addEventListener('close', function () { dlg.innerHTML = ''; });
+
+renderShell();
+})();
+</script>
+</body>
+</html>
